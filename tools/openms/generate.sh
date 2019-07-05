@@ -1,8 +1,7 @@
 #!/bin/bash
 
-VERSION=2.3
-CONDAPKG=https://anaconda.org/bioconda/openms/2.3.0/download/linux-64/openms-2.3.0-py27h932d754_3.tar.bz2
-#https://anaconda.org/bioconda/openms/2.4.0/download/linux-64/openms-2.4.0-py27h574aadf_1.tar.bz2
+VERSION=2.4
+CONDAPKG=https://anaconda.org/bioconda/openms/2.4.0/download/linux-64/openms-2.4.0-py27h574aadf_1.tar.bz2
 
 
 # parse test definitions from OpenMS sources for a tool with a given id
@@ -62,31 +61,32 @@ function prepare_test_data {
 }
 
 
-reset old data
-rm xml/*xml
+#reset old data
+mkdir -p xml
+rm -f xml/*xml
 echo "<macros>" > xml/macros_test.xml
 echo "" > prepare_test_data.sh
 
-# wget $CONDAPKG 
-# tar -xf $(basename $CONDAPKG)
+#wget $CONDAPKG 
+#tar -xf $(basename $CONDAPKG)
 
-# git clone -b release/2.3.0 https://github.com/OpenMS/OpenMS.git
+#git clone -b release/$VERSION.0 https://github.com/OpenMS/OpenMS.git
 
-# /home/berntm/miniconda3/bin/conda create -y --quiet --override-channels --channel iuc --channel conda-forge --channel bioconda --channel defaults --name __openms@$VERSION openms=$VERSION
-# 
-# conda activate __openms@2.3
-# 
-# mkdir ctd
-# for i in bin/*
-# do
-# 	b=$(basename $i)
-# 	$b -write_ctd ctd/
-# 	sed -i -e 's/²/^2/' ctd/$b.ctd
-# done
-# 
-# git clone https://github.com/genericworkflownodes/CTDopts
-# export PYTHONPATH=/home/berntm/projects/tools-galaxyp/tools/openms/gen-test/CTDopts
-# git clone https://github.com/WorkflowConversion/CTDConverter.git
+#conda create -y --quiet --override-channels --channel iuc --channel conda-forge --channel bioconda --channel defaults --name __openms@$VERSION openms=$VERSION
+ 
+#conda activate __openms@$VERSION
+ 
+#mkdir ctd
+#for i in bin/*
+#do
+#	b=$(basename $i)
+#	$b -write_ctd ctd/
+#	sed -i -e 's/²/^2/' ctd/$b.ctd
+#done
+ 
+#git clone https://github.com/genericworkflownodes/CTDopts
+export PYTHONPATH=CTDopts
+#git clone https://github.com/WorkflowConversion/CTDConverter.git
 
 python CTDConverter/convert.py galaxy -i ctd/*ctd -o xml/ -s ../tools_blacklist.txt -f ../filetypes.txt -m ../macros.xml -t ../tool.conf  -p ../hardcoded_params.txt -b version log debug test java_memory java_permgen
 #-b version log debug test in_type executable pepnovo_executable param_model_directory rt_concat_trafo_out param_id_pool
@@ -97,6 +97,7 @@ python CTDConverter/convert.py galaxy -i ctd/*ctd -o xml/ -s ../tools_blacklist.
 # - remove trailing # chars that are introduced via CTDConverter for hard coded boolean parameters
 # - add requirements for tools with -...executable parameter
 # - fix in_type (using link with the proper extension)
+
 for i in xml/*xml
 do
 
@@ -190,10 +191,12 @@ do
 	fi	
 done
 
+conda activate __openms@$VERSION
 
-# chmod u+x prepare_test_data.sh
-# cd xml/test-data
-# ../../prepare_test_data.sh
-# cd ../..
-# 
-# conda deactivate
+ chmod u+x prepare_test_data.sh
+ cd xml/test-data
+ ../../prepare_test_data.sh
+ cd ../..
+ 
+ conda deactivate
+
