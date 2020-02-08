@@ -5,11 +5,13 @@
     <macros>
         <import>macros.xml</import>
     </macros>
-    <expand macro="requirements">
+    <requirements>
+        <requirement type="package" version="2.2.6">bioconductor-cardinal</requirement>
+        <requirement type="package" version="3.6.1">r-base</requirement>
         <requirement type="package" version="2.3">r-gridextra</requirement>
-        <requirement type="package" version="3.0">r-ggplot2</requirement>
-        <requirement type="package" version="0.20_35">r-lattice</requirement>
-    </expand>
+        <requirement type="package" version="3.2.1">r-ggplot2</requirement>
+        <requirement type="package" version="0.20_38">r-lattice</requirement>
+    </requirements>
     <command detect_errors="exit_code">
     <![CDATA[
 
@@ -37,9 +39,27 @@ library(gridExtra)
 library(lattice)
 library(ggplot2)
 
-@READING_MSIDATA@
+        ## function to read RData files independent of filename
+        loadRData <- function(fileName){
+        load(fileName)
+        get(ls()[ls() != "fileName"])
+        }
 
-@READING_MSIDATA_INRAM@  ###change out
+        #if $infile.ext == 'imzml'
+            #if str($processed_cond.processed_file) == "processed":
+                msidata <- readImzML('infile', mass.accuracy=$processed_cond.accuracy, units.accuracy = "$processed_cond.units", as = c("MSImageSet"))
+                centroided(msidata) = $centroids
+                iData(msidata) = iData(msidata)[]
+            #else
+                msidata <- readImzML('infile', as = c("MSImageSet"))
+                centroided(msidata) = $centroids
+            #end if
+        #elif $infile.ext == 'analyze75'
+            msidata = readAnalyze('infile', as = c("MSImageSet"))
+            centroided(msidata) = $centroids
+        #else
+            msidata = loadRData('infile.RData')
+        #end if
 
 ## remove duplicated coordinates, otherwise peak picking and log2 transformation will fail
 msidata <- msidata[,!duplicated(coord(msidata)[,1:2])]

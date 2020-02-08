@@ -87,7 +87,7 @@ all_files = $num_infiles
 
     #if $infile.ext == 'imzml'
         #if str($processed_cond.processed_file) == "processed":
-            msidata_$i <- readImzML('infile_${i}', mass.accuracy=$processed_cond.accuracy, units.accuracy = "$processed_cond.units", attach.only=TRUE, as = c("MSImageSet"))
+            msidata_$i <- readImzML('infile_${i}', resolution=$processed_cond.accuracy, unit = "$processed_cond.units", attach.only=TRUE, as = c("MSImageSet"))
             centroided(msidata_$i) = $centroids
         #else
             msidata_$i <- readImzML('infile_${i}', attach.only=TRUE, as = c("MSImageSet"))
@@ -559,7 +559,7 @@ This tool combines several mass spectrometry imaging data files.
 
 **Output**
 
-- MSI data as imzML file (in continous format when m/z axis were the same; in processed format when m/z axis were different)
+- MSI data as imzML file (in continuous format when m/z axis were the same; in processed format when m/z axis were different)
 - Pdf with pixel positions and annotations of the combined files
 - Tabular file with pixel annotations (x,y,column with input file names and annotation columns)
 

@@ -198,14 +198,23 @@ if (ncol(msidata)>0 & nrow(msidata) >0){
                         key_legend = TRUE
                     }else{key_legend = FALSE}
 
-            plot(msidata, pixel=1:ncol(msidata), pixel.groups=msidata\$annotation, key=key_legend, col=hue_pal()(length(levels(msidata\$annotation))),superpose=TRUE, main="Average mass spectrum of full m/z range")
-        }else{
-            plot(msidata, pixel=1:ncol(msidata), key=TRUE, main="Average mass spectrum of full m/z range")}
+
+                    #if $pixel_conditional.fullmz:
+                        plot(msidata, pixel=1:ncol(msidata), pixel.groups=msidata\$annotation, key=key_legend, col=hue_pal()(length(levels(msidata\$annotation))),superpose=TRUE, main="Average mass spectrum of full m/z range")
+                    #end if
+                    }else{
+                    #if $pixel_conditional.fullmz:
+print("here")
+                        plot(msidata, pixel=1:ncol(msidata), key=TRUE, main="Average mass spectrum of full m/z range")
+                    #end if
+                    }
+
+
 
         ##################### II) Sample: plot zoom-in mass spectrum ##########
 
-        #if $pixel_conditional.zoomed_sample:
-            #for $token in $pixel_conditional.zoomed_sample:
+        #if $pixel_conditional.mz_range.zoomed_sample:
+            #for $token in $pixel_conditional.mz_range.zoomed_sample:
                 print("zoomed sample pixels")
 
                 minmasspixel = features(msidata, mz=$token.xlimmin)
@@ -274,12 +283,25 @@ if (ncol(msidata)>0 & nrow(msidata) >0){
         <expand macro="reading_msidata"/>
         <expand macro="pdf_filename"/>
         <conditional name="pixel_conditional">
-            <param name="pixel_type" type="select" label="Select if you want to plot the mass spectrum of a single pixel or the average spectrum of all pixels of a sample">
-                <option value="single_pixel" selected="True">Single pixel</option>
-                <option value="sample_pixel">Average spectrum for each sample</option>
+            <param name="pixel_type" type="select" label="Choose pixel (spectra)?">
+                <option value="sample_pixel" selected="True" >All pixel</option>
+                <option value="single_pixel">Tabular file with pixel</option>
+
             </param>
             <when value="single_pixel">
-                <repeat name="repeatpixel" title="Plot mass spectra for pixel of interest" min="1" max="20">
+
+
+                        <param name="pixel_file" type="data" format="tabular" label="Load tabular file with pixel coordinates"
+                        help="Two or three columns: x values, y values, optionally annotations"/>
+                        <param name="column_x" data_ref="pixel_file" label="Column with x values" type="data_column"/>
+                        <param name="column_y" data_ref="pixel_file" label="Column with y values" type="data_column"/>
+                        <param name="column_annotation" data_ref="pixel_file" optional="True" label="Column with annotations" type="data_column"/>
+                        <param name="tabular_header" type="boolean" label="Tabular files contain a header line" truevalue="TRUE" falsevalue="FALSE"/>
+
+
+
+
+                <!--repeat name="repeatpixel" title="Plot mass spectra for pixel of interest" min="1" max="20">
                     <param name="inputx" type="integer" value="" label="x-coordinate of pixel of interest" help="x-value of the pixel of interest"/>
                     <param name="inputy" type="integer" value="" label="y-coordinate of pixel of interest" help="y-value of the pixel of interest"/>
                     <param name="inputmz" type="float" value="1296.7" label="Next parameters are to control heatmap image which will be plotted, define m/z here" help="m/z will be displayed as heatmap and the pixel of interest will be visualized by the intersection of two lines"/>
@@ -300,28 +322,52 @@ if (ncol(msidata)>0 & nrow(msidata) >0){
                     </param>
                     <param name="inputwidth" type="integer" value="2" label="Select the width of the lines at x and y position"/>
                     <repeat name="zoomedplot" title="Zoomed in plots with m/z min and m/z max to define the plot window" min="0" max="50">
-                        <param name="xlimmin" type="integer" value="" label="lower m/z boundary for plotting window" help="minimum m/z for zoomed in window"/>
-                        <param name="xlimmax" type="integer" value="" label="upper m/z boundary for plotting window" help="maximum m/z for zoomed in window"/>
+                        <param name="xlimmin" type="float" value="" label="lower m/z boundary for plotting window" help="minimum m/z for zoomed in window"/>
+                        <param name="xlimmax" type="float" value="" label="upper m/z boundary for plotting window" help="maximum m/z for zoomed in window"/>
                     </repeat>
-                </repeat>
+                </repeat-->
             </when>
             <when value="sample_pixel">
-            <conditional name="tabular_annotation">
-                <param name="load_annotation" type="select" label="Use pixel annotation from tabular file for spectra plots">
-                    <option value="no_annotation" selected="True">pixels belong into one group only</option>
-                    <option value="yes_annotation">group pixels according to annotations</option>
-                </param>
-                    <when value="yes_annotation">
-                        <expand macro="reading_pixel_annotations"/>
-                    </when>
-                    <when value="no_annotation"/>
-            </conditional>
-                <repeat name="zoomed_sample" title="Zoomed in plots with m/z min and m/z max to define the plot window" min="0" max="50">
-                    <param name="xlimmin" type="integer" value="" label="lower m/z boundary for plotting window" help="minimum m/z for zoomed in window"/>
-                    <param name="xlimmax" type="integer" value="" label="upper m/z boundary for plotting window" help="maximum m/z for zoomed in window"/>
-                </repeat>
+<!--  add full mz to R code and only then generate full average spectrum -->
+<!-- optional ob manually min und max oder tabelle, wenn tabelle dann noch zwei text felder min und max zu wert? oder nur min, max = 2 columns; oder 3 columns: mz plus and minus?-->
+                <conditional name="tabular_annotation">
+                    <param name="load_annotation" type="select" label="Pixel annotations (each annotation group will appear as one colour)">
+                        <option value="no_annotation" selected="True">No annotations</option>
+                        <option value="yes_annotation">Annotations</option>
+                    </param>
+                        <when value="yes_annotation">
+                            <expand macro="reading_pixel_annotations"/>
+                        </when>
+                        <when value="no_annotation"/>
+                </conditional>
             </when>
+
+
         </conditional>
+
+                <param name="fullmz" type="boolean" label="Plot complete m/z range?" truevalue="TRUE" falsevalue="FALSE"/>
+                <conditional name="mz_range">
+                    <param name="mz_range_options" type="select" label="m/z range input">
+                        <option value="manual_mz" selected="True">Manual input</option>
+                        <option value="tabular_mz">Tabular file</option>
+                    </param>
+                    <when value="tabular_mz">
+                        <param name="minus_mz_tab" type="float" value="" label="m/z value to subtract from m/z values in tabular file = lower m/z boundary"/>
+                        <param name="plus_mz_tab" type="float" value="" label="m/z value to add to m/z values in tabular file = upper m/z boundary"/>
+
+                        <param name="mz_file" type="data" format="tabular" label="Load tabular file with m/z values"/>
+                        <param name="column_mz" data_ref="mz_file" label="Column with mz values" type="data_column"/>
+                        <param name="tabular_header" type="boolean" label="Tabular files contain a header line" truevalue="TRUE" falsevalue="FALSE"/>
+
+TODO: Hilfe updaten; durschauen dass Label kurz und prägnant sind (!!! danach auch training ändern!), 
+                    </when>
+                    <when value="manual_mz">
+                        <repeat name="zoomed_sample" title="Define min m/z and max m/z for the plotting window" min="1" max="50">
+                            <param name="xlimmin" type="float" value="" label="lower m/z boundary for plotting window"/>
+                            <param name="xlimmax" type="float" value="" label="upper m/z boundary for plotting window"/>
+                        </repeat>
+                    </when>
+                </conditional>
     </inputs>
     <outputs>
         <data format="pdf" name="plots" from_work_dir="mzplots.pdf" label="${tool.name} on ${on_string}:results"/>
@@ -345,7 +391,7 @@ if (ncol(msidata)>0 & nrow(msidata) >0){
                         </repeat>
                         <repeat name="zoomedplot">
                             <param name="xlimmin" value="400"/>
-                            <param name="xlimmax" value="420"/>
+                            <param name="xlimmax" value="400.5"/>
                         </repeat>
                     </repeat>
                     <repeat name="repeatpixel">
@@ -394,9 +440,6 @@ if (ncol(msidata)>0 & nrow(msidata) >0){
                     <param name="column_y" value="2"/>
                     <param name="column_names" value="4"/>
                     <param name="tabular_header" value="TRUE"/>
-
-
-
                 </conditional>
                 <repeat name="zoomed_sample">
                      <param name="xlimmin" value="1250"/>

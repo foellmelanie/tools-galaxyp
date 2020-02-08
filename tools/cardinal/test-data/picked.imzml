@@ -8,8 +8,8 @@
  <fileDescription>
   <fileContent>
    <cvParam cvRef="MS" accession="MS:1000579" name="MS1 spectrum"/>
-   <cvParam cvRef="IMS" accession="IMS:1000080" name="universally unique identifier" value="{3d75db19-25c6-4579-a1bc-fb0ee0bae869}"/>
-   <cvParam cvRef="IMS" accession="IMS:1000091" name="ibd SHA-1" value="3fbb731b958a3ec73031a5894c29e3ef16586f39"/>
+   <cvParam cvRef="IMS" accession="IMS:1000080" name="universally unique identifier" value="{c6a62037-a96c-42de-b48d-a1c4fa5ea97b}"/>
+   <cvParam cvRef="IMS" accession="IMS:1000091" name="ibd SHA-1" value="79db782570c6df65524c0e7221ed31eccfa5d8d8"/>
    <cvParam cvRef="IMS" accession="IMS:1000031" name="processed"/>
    <userParam name="MALDIquantForeign" value="MALDIquant object(s) exported to mzML"/>
   </fileContent>

@@ -1,12 +1,14 @@
-<tool id="cardinal_filtering" name="MSI filtering" version="@VERSION@.3">
+<tool id="cardinal_filtering" name="MSI filtering" version="2.2.6.0">
     <description>tool for filtering mass spectrometry imaging data</description>
     <macros>
         <import>macros.xml</import>
     </macros>
-    <expand macro="requirements">
+    <requirements>
+        <requirement type="package" version="2.2.6">bioconductor-cardinal</requirement>
+        <requirement type="package" version="3.6.1">r-base</requirement>
         <requirement type="package" version="2.3">r-gridextra</requirement>
-        <requirement type="package" version="3.0">r-ggplot2</requirement>
-    </expand>
+        <requirement type="package" version="3.2.1">r-ggplot2</requirement>
+    </requirements>
     <expand macro="print_version"/>
     <command detect_errors="exit_code">
     <![CDATA[
@@ -14,12 +16,9 @@
         @INPUT_LINKING@
         cat '${MSI_subsetting}' &&
         Rscript '${MSI_subsetting}' &&
-
-        #if str($imzml_output) == "imzml_format":
-            mkdir $outfile_imzml.files_path &&
-            mv ./out.imzML "${os.path.join($outfile_imzml.files_path, 'imzml')}" | true &&
-            mv ./out.ibd "${os.path.join($outfile_imzml.files_path, 'ibd')}" | true &&
-        #end if
+        mkdir $outfile_imzml.files_path &&
+        mv ./out.imzML "${os.path.join($outfile_imzml.files_path, 'imzml')}" | true &&
+        mv ./out.ibd "${os.path.join($outfile_imzml.files_path, 'ibd')}" | true &&
         echo "imzML file:" > $outfile_imzml &&
         ls -l "$outfile_imzml.files_path" >> $outfile_imzml
     ]]>
@@ -37,7 +36,29 @@ library(Cardinal)
 library(ggplot2)
 library(gridExtra)
 
-@READING_MSIDATA@
+
+
+## function to read RData files independent of filename
+loadRData <- function(fileName){
+load(fileName)
+get(ls()[ls() != "fileName"])
+}
+
+#if $infile.ext == 'imzml'
+    #if str($processed_cond.processed_file) == "processed":
+        msidata <- readImzML('infile', resolution=$processed_cond.accuracy, units = "$processed_cond.units", attach.only=TRUE, as = c("MSImageSet"))
+        centroided(msidata) = $centroids
+    #else
+        msidata <- readImzML('infile', attach.only=TRUE, as = c("MSImageSet"))
+        centroided(msidata) = $centroids
+    #end if
+#elif $infile.ext == 'analyze75'
+    msidata = readAnalyze('infile', attach.only=TRUE, as = c("MSImageSet"))
+    centroided(msidata) = $centroids
+#else
+    msidata = loadRData('infile.RData')
+#end if
+
 
 
 ########################### QC numbers ########################
@@ -92,7 +113,7 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
                 error=function(cond) {
                 ## in case all coordinates were outside the dataset leading to zero pixels, tool is stopped to avoid continuing with wrong data
                     message("Error during pixel filtering")
-                    message("Possible problems: Forgot to set 'Tabular file contains a header line' = Yes, wrong columns selected, columns with coordinates contain empty fields or letters, all coordinates were outside the range of the dataset - this can be checked with the 'MSI qualitycontrol' tool)")
+                    message("Possible problems: Forgot to set 'Tabular file contains a header line' = Yes, wrong columns selected, columns with coordinates contain empty fields or letters, all coordinates were outside the range of the dataset - this can be checked with the 'MSI qualitycontrol' tool")
                     stop(call.=FALSE)
                 }
             )    
@@ -205,7 +226,7 @@ if (ncol(msidata) > 0){
                         ## in case all provided m/z values were outside the m/z range
                         ## tool is stopped to avoid continuing with wrong data
                             message("Error during m/z filtering")
-                            message("Possible problems: Forgot to set 'Tabular file contains a header line' = Yes, wrong columns selected, column with m/z features contains empty fields or letters, all m/z features s were outside the range of the dataset  - this can be checked with the 'MSI qualitycontrol' tool) or did not match any m/z feature of the dataset (see help section for more information on that)")
+                            message("Possible problems: Forgot to set 'Tabular file contains a header line' = Yes, wrong columns selected, column with m/z features contains empty fields or letters, all m/z features s were outside the range of the dataset  (this can be checked with the 'MSI qualitycontrol' tool) or did not match any m/z feature of the dataset (see help section for more information on that)")
                             stop(call.=FALSE)
                         }
                     )    
@@ -263,7 +284,7 @@ if (ncol(msidata) > 0){
                         current_mass = which(c(mz(msidata) <= masses + plusminus & mz(msidata) >= masses - plusminus))
                         mass_to_remove = append(mass_to_remove, current_mass)}
                     msidata= msidata[-mass_to_remove, ]
-                    validmz = numberfeatures - nrow(msidata)
+                    validmz = maxfeatures - nrow(msidata)
                     ## does not throw error when processed file has no features left, therefore create error to avoid continuing with wrong data
                     if (nrow(msidata) == 0)
                         {
@@ -380,18 +401,11 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
 
     ## save msidata as imzML file, will only work if there is at least 1 m/z left
 
-    #if str($imzml_output) == "imzml_format":
         if (maxfeatures2 > 0){
             ## make sure that coordinates are integers
             coord(msidata)\$y = as.integer(coord(msidata)\$y)
             coord(msidata)\$x = as.integer(coord(msidata)\$x)
         writeImzML(msidata, "out")}
-    #elif str($imzml_output) == "rdata_format":
-        ## save msidata as Rfile
-        iData(msidata) = iData(msidata)[]
-        save(msidata, file="$outfile_rdata")
-    #end if
-
 
 }else{
     print("Inputfile or filtered file has no intensities > 0")
@@ -448,20 +462,10 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
                 </param>
             </when>
         </conditional>
-        <param name="imzml_output" type="select" display = "radio" optional = "False"
-               label="Output format" help= "Choose the output format">
-                <option value="imzml_format" >imzML</option>
-                <option value="rdata_format" selected="True" >RData</option>
-        </param>
     </inputs>
 
     <outputs>
-        <data format="imzml" name="outfile_imzml" label="${tool.name} on ${on_string}: imzML">
-            <filter>imzml_output =='imzml_format'</filter>
-        </data>
-        <data format="rdata" name="outfile_rdata" label="${tool.name} on ${on_string}: RData">
-            <filter>imzml_output == 'rdata_format'</filter>
-        </data>
+        <data format="imzml" name="outfile_imzml" label="${tool.name} on ${on_string}: imzML"/>
         <data format="pdf" name="QC_overview" from_work_dir="filtertool_QC.pdf" label = "${tool.name} on ${on_string}: QC"/>
     </outputs>
     <tests>
@@ -475,7 +479,6 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
             <param name="features_filtering" value="features_range"/>
             <param name="min_mz" value="350"/>
             <param name="max_mz" value="500"/>
-            <param name="imzml_output" value="imzml_format"/>
             <output name="QC_overview" file="imzml_filtered3.pdf" compare="sim_size"/>
             <output name="outfile_imzml" ftype="imzml" file="out3.imzml.txt" compare="sim_size">
                 <extra_files type="file" file="out3.imzml" name="imzml" lines_diff="4"/>
@@ -488,7 +491,6 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
             <param name="annotation_file" ftype="tabular" value="inputpixels_2column.tabular"/>
             <param name="column_x" value="1"/>
             <param name="column_y" value="3"/>
-            <param name="imzml_output" value="imzml_format"/>
             <output name="QC_overview" file="imzml_filtered4.pdf" compare="sim_size"/>
             <output name="outfile_imzml" ftype="imzml" file="out4.imzml.txt" compare="sim_size">
                 <extra_files type="file" file="out4.imzml" name="imzml" lines_diff="4"/>
@@ -506,7 +508,6 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
             <param name="mz_tabular" ftype="tabular" value = "featuresofinterest5.tabular"/>
             <param name="feature_column" value="1"/>
             <param name="feature_header" value="0"/>
-            <param name="imzml_output" value="imzml_format"/>
             <output name="QC_overview" file="imzml_filtered5.pdf" compare="sim_size"/>
             <output name="outfile_imzml" ftype="imzml" file="out5.imzml.txt" compare="sim_size">
                 <extra_files type="file" file="out5.imzml" name="imzml" lines_diff="4"/>
@@ -515,7 +516,6 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
         </test>
         <test>
             <expand macro="infile_analyze75"/>
-            <param name="imzml_output" value="imzml_format"/>
             <output name="QC_overview" file="analyze75_filtered2.pdf" compare="sim_size"/>
             <output name="outfile_imzml" ftype="imzml" file="out6.imzml.txt" compare="sim_size">
                 <extra_files type="file" file="out6.imzml" name="imzml" lines_diff="4"/>
@@ -524,14 +524,33 @@ if (ncol(msidata)>0 & nrow(msidata) >0)
         </test>
         <test>
             <param name="infile" value="preprocessed.RData" ftype="rdata"/>
-            <conditional name="outputs">
-                <param name="outputs_select" value="no_quality_control"/>
-            </conditional>
-            <param name="imzml_output" value="imzml_format"/>
             <output name="QC_overview" file="rdata_notfiltered.pdf" compare="sim_size" />
             <output name="outfile_imzml" ftype="imzml" file="out7.imzml.txt" compare="sim_size">
                 <extra_files type="file" file="out7.imzml" name="imzml" lines_diff="4"/>
                 <extra_files type="file" file="out7.ibd" name="ibd" compare="sim_size"/>
+            </output>
+        </test>
+        <test>
+            <expand macro="processed_infile_imzml"/>
+            <conditional name="processed_cond">
+                <param name="processed_file" value="processed"/>
+                <param name="accuracy" value="100"/>
+                <param name="units" value="ppm"/>
+            </conditional>
+            <param name="pixel_filtering" value="two_columns"/>
+            <param name="annotation_file" ftype="tabular" value="inputpixels_2column.tabular"/>
+            <param name="column_x" value="1"/>
+            <param name="column_y" value="3"/>
+            <param name="features_filtering" value="remove_features"/>
+            <param name="mz_tabular" ftype="tabular" value = "featuresofinterest5.tabular"/>
+            <param name="feature_column" value="1"/>
+            <param name="feature_header" value="0"/>
+            <param name="removal_plusminus" value="100"/>
+            <param name="units_removal" value="ppm"/>
+            <output name="QC_overview" file="imzml_filtered8.pdf" compare="sim_size"/>
+            <output name="outfile_imzml" ftype="imzml" file="out8.imzml.txt" compare="sim_size">
+                <extra_files type="file" file="out8.imzml" name="imzml" lines_diff="4"/>
+                <extra_files type="file" file="out8.ibd" name="ibd" compare="sim_size"/>
             </output>
         </test>
     </tests>
@@ -581,7 +600,7 @@ This tool provides options to filter (subset) pixels and m/z features of mass sp
 
 - m/z feature removing: 
 
-    - Perturbing m/z features such as matrix contaminants can be removed by specifying their m/z value in a tabular file, optionally with a half window size in ppm or m/z for the window in which peaks should be removed
+    - Perturbing m/z features such as matrix contaminants, tryptic peptides and internal calibrants can be removed by specifying their m/z value in a tabular file, optionally with a half window size in ppm or m/z for the window in which peaks should be removed
 
 
 **Tips**
@@ -598,7 +617,7 @@ This tool provides options to filter (subset) pixels and m/z features of mass sp
 
 **Output**
 
-- MSI data as imzML file or .RData (can be read with the Cardinal package in R)
+- MSI data as (continuous) imzML file
 - pdf with heatmap showing the pixels that are removed and kept as well as histograms of kept and removed m/z
 
 

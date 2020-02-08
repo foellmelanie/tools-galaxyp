@@ -9,8 +9,8 @@
 		<fileContent>
 			<cvParam cvRef="MS" accession="MS:1000579" name="MS1 spectrum" value="" />
 			<cvParam cvRef="MS" accession="MS:1000128" name="profile spectrum" value="" />
-			<cvParam cvRef="IMS" accession="IMS:1000080" name="universally unique identifier" value="e9aca5c3-32c8-416b-a9e9-e40ba239ce32" />
-			<cvParam cvRef="IMS" accession="IMS:1000091" name="ibd SHA-1" value="c0c53177dc3a008c7a18ba10fe139ccaecc295a2" />
+			<cvParam cvRef="IMS" accession="IMS:1000080" name="universally unique identifier" value="6d082093-6cc6-46b3-9d40-301686f18352" />
+			<cvParam cvRef="IMS" accession="IMS:1000091" name="ibd SHA-1" value="6786e8256d0dc7ee9a50c17b5646481b14e69d20" />
 			<cvParam cvRef="IMS" accession="IMS:1000030" name="continuous" value="" />
 		</fileContent>
 	</fileDescription>

@@ -1,4 +1,4 @@
 imzML file:
 total 20
--rw-r--r-- 1 meli meli   380 Feb 12 00:50 ibd
--rw-r--r-- 1 meli meli 12508 Feb 12 00:50 imzml
+-rw-r--r-- 1 meli meli   380 Jan 29 13:05 ibd
+-rw-r--r-- 1 meli meli 12853 Jan 29 13:05 imzml
